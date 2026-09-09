@@ -1,0 +1,28 @@
+{
+  "base_model": "runs/xlmr/best",
+  "llm_model": "claude-sonnet-4-6",
+  "encoder_en_gpu": {
+    "accuracy": 0.9314935064935065,
+    "p50_ms": 4.56,
+    "p95_ms": 8.03,
+    "device": "cuda"
+  },
+  "encoder_en_cpu": {
+    "accuracy": 0.9314935064935065,
+    "p50_ms": 26.5,
+    "p95_ms": 30.47,
+    "device": "cpu"
+  },
+  "encoder_he_gpu": {
+    "accuracy": 0.6558441558441559,
+    "p50_ms": 4.88,
+    "p95_ms": 8.73,
+    "device": "cuda"
+  },
+  "encoder_en_samesample": {
+    "accuracy": 0.9090909090909091,
+    "p50_ms": 4.35,
+    "p95_ms": 8.52,
+    "device": "cuda"
+  }
+}

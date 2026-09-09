@@ -53,8 +53,100 @@ full of English product names in Latin script. That needs real logs.
 
 ## Results
 
-Not yet measured — this section gets the numbers from `results.json` and
-`calibration.json`, not prose.
+Trained on the GTX 1080 box. Accuracy is the full 3,080-example BANKING77
+test set; latency is single-query, one at a time, because that is how a
+router is actually called — batched throughput would flatter it.
+
+| Model | Accuracy | F1-macro | Train | p50 GPU | p50 CPU |
+|---|---|---|---|---|---|
+| `distilbert-base-uncased` | 91.3% | 91.2% | 183 s | 2.29 ms | 13.41 ms |
+| `xlm-roberta-base` | 93.1% | 93.1% | 492 s | 4.56 ms | 26.5 ms |
+
+### Hebrew
+
+The same 308 examples in both languages, so the difference is language and
+not a different sample.
+
+| Model | English | Hebrew | Drop |
+|---|---|---|---|
+| `distilbert-base-uncased` | 90.3% | 5.8% | -84.4 pts |
+| `xlm-roberta-base` | 90.9% | 65.6% | -25.3 pts |
+
+The English-only model is not degraded in Hebrew, it is destroyed — 5.8%
+against a 1.3% chance floor. It never saw the script. That is the expected
+result and it is here as a control, because "fine-tune a small model for
+routing" is a sentence that needs the multilingual caveat attached to it
+in an Israeli bank.
+
+The multilingual model is the actual finding: 65.6% in Hebrew against
+90.9% on the same sentences in English. It works, and it is nowhere near
+good enough to route Hebrew traffic on its own at a threshold that makes
+it worth having. Closing that gap needs Hebrew training data, not a better
+base model — the model has the script, it does not have the domain in the
+script.
+
+### Escalation threshold
+
+Max softmax on held-out English data. This is what the 0.75 default in
+`router.py` is chosen from.
+
+| Threshold | Handled locally | Accuracy on kept | Escalated |
+|---|---|---|---|
+| 0.5 | 92.9% | 94.7% | 7.1% |
+| 0.7 | 84.6% | 97.6% | 15.4% |
+| 0.75 **←** | 80.5% | 98.2% | 19.5% |
+| 0.8 | 76.4% | 98.4% | 23.6% |
+| 0.9 | 57.1% | 99.4% | 42.9% |
+| 0.95 | 22.3% | 99.9% | 77.7% |
+
+### Against an LLM doing the same job
+
+`claude-sonnet-4-6` with a strict 77-value enum tool and forced tool choice,
+so it cannot answer with anything that is not a valid intent — the baseline
+loses on judgement or not at all. 150 requests per language, sequential,
+because latency is what a router is judged on and concurrency would hide it.
+
+| | Accuracy EN | Accuracy HE | p50 | p95 | $ / 1M requests |
+|---|---|---|---|---|---|
+| `xlm-roberta-base` | **93.1%** | 65.6% | 4.56 ms | 8.03 ms | no per-request billing |
+| `distilbert-base-uncased` | 91.3% | 5.8% | 2.29 ms | 4.33 ms | no per-request billing |
+| `claude-sonnet-4-6` | 85.3% | **77.3%** | 2080 ms | 5218 ms | $4,470 |
+
+Read the two bolded cells together, because they disagree and that is the
+useful part.
+
+**In English the fine-tune wins outright** — 93.1% against 85.3%, at 4.6 ms
+against 2,080 ms. That is a 450x latency difference on the node every
+single message passes through, and the small model is *more* accurate,
+because 10,003 labelled examples of exactly this task beat general
+capability at a task this narrow.
+
+**In Hebrew it loses** — 65.6% against 77.3%. The LLM degrades gracefully
+across languages; the fine-tune degrades badly, because its Hebrew came
+from the base model's pretraining and none of its 77 classes did.
+
+Which is the argument for the cascade rather than for replacement. Route
+English on the encoder and let confidence send the tail to the LLM; Hebrew
+traffic escalates far more often until there is Hebrew training data, and
+the confidence threshold makes that happen on its own rather than needing a
+language switch in the code.
+
+**On the price column.** The encoder cell says "no per-request billing"
+rather than $0 — the GPU box is a fixed cost either way, and at 437
+requests/second single-stream it is nowhere near saturated by this
+workload. The honest comparison is a fixed cost against $4,470 per million,
+not a made-up per-request number.
+
+**The LLM figure is uncached, and that is a real caveat rather than a
+rhetorical one.** The ~1.3k-token tool schema is identical on every request
+and is exactly what prompt caching is for. Three placements were tried;
+`cache_control` on the tool definition and on a system content block were
+both silently dropped, and top-level auto-caching put the breakpoint after
+the customer message, producing a cache write on every request and never a
+read — which made the baseline *more* expensive ($5,435 per 1M) rather than
+less. A correctly placed breakpoint would put that prefix at 0.1x and take
+the LLM to roughly $930 per million. That does not change the conclusion,
+and quoting the $4,470 without saying this would be dishonest.
 
 ## Running it
 

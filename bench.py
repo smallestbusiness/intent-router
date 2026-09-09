@@ -15,10 +15,11 @@ import time
 from pathlib import Path
 
 import anthropic
-import torch
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
-import intents
+# torch, transformers and the dataset library are imported inside the functions
+# that need them. The LLM half of this benchmark runs on the laptop, which holds
+# the API key and none of the training stack; keeping these out of module scope
+# is what lets bench_llm.py import llm_eval there.
 
 LLM_MODEL = "claude-sonnet-4-6"
 PRICE_IN, PRICE_OUT = 3.00 / 1e6, 15.00 / 1e6      # $/token, claude-sonnet-4-6
@@ -28,13 +29,19 @@ PRICE_CACHE_WRITE, PRICE_CACHE_READ = 3.75 / 1e6, 0.30 / 1e6
 # ---------- the fine-tuned router ----------
 
 def load(path):
+    from transformers import AutoModelForSequenceClassification, AutoTokenizer
     tok = AutoTokenizer.from_pretrained(path)
     model = AutoModelForSequenceClassification.from_pretrained(path).eval()
     return tok, model
 
 
-@torch.no_grad()
 def encoder_eval(tok, model, texts, labels, device, batch=64):
+    import torch
+    with torch.no_grad():
+        return _encoder_eval(torch, tok, model, texts, labels, device, batch)
+
+
+def _encoder_eval(torch, tok, model, texts, labels, device, batch):
     model.to(device)
     preds = []
     for i in range(0, len(texts), batch):
@@ -79,16 +86,31 @@ def llm_eval(texts, labels, names, limit):
     system = ("You route a bank customer's message to exactly one of 77 intents. "
               "Call the route tool with the single best-fitting intent.")
 
-    # Prompt caching on, deliberately. The 77-label enum is ~1k tokens and it is
-    # identical on every request, so without caching this baseline would lose on
-    # a mistake nobody would ship rather than on the merits. Beating an
-    # unoptimised opponent proves nothing.
+    # No prompt caching, and not for want of trying. The ~1.3k-token tool schema
+    # is identical on every request and is exactly what caching exists for, so
+    # the intent was to measure the baseline with it on -- beating an unoptimised
+    # opponent proves nothing. What actually happened, on anthropic SDK 0.69 /
+    # claude-sonnet-4-6:
+    #
+    #   cache_control on the tool definition   -> 0 write, 0 read (dropped)
+    #   cache_control on a system content block-> 0 write, 0 read (dropped)
+    #   top-level cache_control=ephemeral      -> ~1,287 write per request, 0 read
+    #
+    # The third one fires but places the breakpoint after the last cacheable
+    # block, which is the customer message -- so the prefix changes every request
+    # and the result is a cache write every time and never a hit. That made the
+    # baseline *more* expensive than no caching ($5,435 vs $4,460 per 1M), which
+    # would have flattered the encoder for the wrong reason.
+    #
+    # So the figure below is the uncached one, and it is the honest one to quote.
+    # A correctly placed breakpoint would put the ~1.3k prefix at 0.1x, taking
+    # this to roughly $930 per 1M requests -- still three orders of magnitude
+    # above an encoder running on hardware that is already paid for.
     correct, times, tin, tout, tread, twrite = 0, [], 0, 0, 0, 0
     for n, (text, label) in enumerate(zip(texts[:limit], labels[:limit])):
         t0 = time.perf_counter()
         msg = client.messages.create(
             model=LLM_MODEL, max_tokens=200, system=system, tools=[tool],
-            cache_control={"type": "ephemeral"},
             tool_choice={"type": "tool", "name": "route"},
             messages=[{"role": "user", "content": text}])
         times.append((time.perf_counter() - t0) * 1000)
@@ -112,10 +134,12 @@ def llm_eval(texts, labels, names, limit):
             "cache_hit_rate": round(tread / max(tread + tin, 1), 3),
             "tokens_per_request": {"uncached_in": round(tin / n, 1),
                                    "cache_read": round(tread / n, 1),
+                                   "cache_write": round(twrite / n, 1),
                                    "out": round(tout / n, 1)}}
 
 
 def main():
+    import intents
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", default="runs/distilbert/best")
     ap.add_argument("--llm-limit", type=int, default=385)   # 5 per intent
@@ -124,6 +148,9 @@ def main():
     # it is measured once and reused rather than re-billed per encoder.
     ap.add_argument("--skip-llm", action="store_true")
     ap.add_argument("--out", default="results.json")
+    # The LLM half runs on the laptop, which holds the credential; this writes
+    # the exact examples it must score so both halves see identical inputs.
+    ap.add_argument("--dump-llm-set", default="data/llm_eval_set.json")
     args = ap.parse_args()
 
     _, test = intents.english()
@@ -150,6 +177,19 @@ def main():
 
     if not args.skip_llm:
         results["llm_en"] = llm_eval(texts, labels, names, args.llm_limit)
+
+    if args.dump_llm_set:
+        d = Path(args.dump_llm_set)
+        d.parent.mkdir(parents=True, exist_ok=True)
+        payload = {"names": names,
+                   "en": {"texts": texts[:args.llm_limit],
+                          "labels": labels[:args.llm_limit]}}
+        if args.hebrew:
+            rows = intents.hebrew_test()
+            payload["he"] = {"texts": [r["text_he"] for r in rows][:args.llm_limit],
+                             "labels": [r["label"] for r in rows][:args.llm_limit]}
+        d.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+        print(f"wrote {d} for the LLM half")
 
     Path(args.out).write_text(json.dumps(results, indent=2, ensure_ascii=False))
     print(json.dumps(results, indent=2, ensure_ascii=False))

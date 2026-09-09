@@ -1,0 +1,30 @@
+{
+  "llm_en": {
+    "accuracy": 0.8533333333333334,
+    "n": 150,
+    "p50_ms": 2079.6,
+    "p95_ms": 5217.5,
+    "usd_per_1m_requests": 4469.88,
+    "cache_hit_rate": 0.0,
+    "tokens_per_request": {
+      "uncached_in": 1308.8,
+      "cache_read": 0.0,
+      "cache_write": 0.0,
+      "out": 36.2
+    }
+  },
+  "llm_he": {
+    "accuracy": 0.7733333333333333,
+    "n": 150,
+    "p50_ms": 1848.1,
+    "p95_ms": 8681.3,
+    "usd_per_1m_requests": 4538.92,
+    "cache_hit_rate": 0.0,
+    "tokens_per_request": {
+      "uncached_in": 1326.5,
+      "cache_read": 0.0,
+      "cache_write": 0.0,
+      "out": 37.3
+    }
+  }
+}
