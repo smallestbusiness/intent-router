@@ -61,6 +61,15 @@ router is actually called — batched throughput would flatter it.
 |---|---|---|---|---|---|
 | `distilbert-base-uncased` | 91.3% | 91.2% | 183 s | 2.29 ms | 13.41 ms |
 | `xlm-roberta-base` | 93.1% | 93.1% | 492 s | 4.56 ms | 26.5 ms |
+| `xlm-roberta-large` + LoRA | **94.2%** | 94.2% | 1,227 s | 12.32 ms | 86.44 ms |
+
+`xlm-roberta-large` is 560M parameters and cannot be fully fine-tuned on an 8 GB
+card — AdamW in fp32 needs about 16 bytes per parameter, so roughly 9 GB of
+optimiser state before activations. LoRA trains a rank-16 update to the query
+and value projections instead: **2,701,389 trainable of 562,670,746 (0.48%),
+peaking at 3,752 MiB**. The adapter is merged into the base weights before
+saving, so the benchmarked model is an ordinary one with zero inference
+overhead.
 
 ### Hebrew
 
@@ -71,6 +80,7 @@ not a different sample.
 |---|---|---|---|
 | `distilbert-base-uncased` | 90.3% | 5.8% | -84.4 pts |
 | `xlm-roberta-base` | 90.9% | 65.6% | -25.3 pts |
+| `xlm-roberta-large` + LoRA | 94.2% | **82.8%** | **-11.4 pts** |
 
 The English-only model is not degraded in Hebrew, it is destroyed — 5.8%
 against a 1.3% chance floor. It never saw the script. That is the expected
@@ -78,12 +88,24 @@ result and it is here as a control, because "fine-tune a small model for
 routing" is a sentence that needs the multilingual caveat attached to it
 in an Israeli bank.
 
-The multilingual model is the actual finding: 65.6% in Hebrew against
-90.9% on the same sentences in English. It works, and it is nowhere near
-good enough to route Hebrew traffic on its own at a threshold that makes
-it worth having. Closing that gap needs Hebrew training data, not a better
-base model — the model has the script, it does not have the domain in the
-script.
+The multilingual result was where a prediction got corrected. On
+`xlm-roberta-base`, Hebrew scored 65.6% against 90.9% on the same
+sentences, and the reading was that the gap is training data rather than
+model capacity — the model has the script, it does not have the domain in
+the script.
+
+Going to `xlm-roberta-large` with LoRA, **without adding one Hebrew
+training example**, took Hebrew to 82.8% and halved the cross-lingual gap
+from 25.3 points to 11.4. Cross-lingual transfer is itself a capability
+that scales: 24 layers and 1024 dimensions against 12 and 768 align Hebrew
+and English far better, so an English-only fine-tuning signal carries much
+further across.
+
+So the gap is both, and capacity was the cheaper half — 17 points for one
+20-minute run on hardware already owned, against a translation pipeline and
+a second training set. Hebrew data still closes the rest: 82.8% is not
+production-grade for a bank's primary language. It is the second move now,
+not the first.
 
 ### Escalation threshold
 
@@ -108,28 +130,28 @@ because latency is what a router is judged on and concurrency would hide it.
 
 | | Accuracy EN | Accuracy HE | p50 | p95 | $ / 1M requests |
 |---|---|---|---|---|---|
-| `xlm-roberta-base` | **93.1%** | 65.6% | 4.56 ms | 8.03 ms | no per-request billing |
+| `xlm-roberta-large` + LoRA | **94.2%** | **82.8%** | 12.32 ms | 18.16 ms | no per-request billing |
+| `xlm-roberta-base` | 93.1% | 65.6% | 4.56 ms | 8.03 ms | no per-request billing |
 | `distilbert-base-uncased` | 91.3% | 5.8% | 2.29 ms | 4.33 ms | no per-request billing |
-| `claude-sonnet-4-6` | 85.3% | **77.3%** | 2080 ms | 5218 ms | $4,470 |
+| `claude-sonnet-4-6` | 85.3% | 77.3% | 2080 ms | 5218 ms | $4,470 |
 
-Read the two bolded cells together, because they disagree and that is the
-useful part.
+**The best fine-tune beats the LLM in both languages** — 94.2% against
+85.3% in English, 82.8% against 77.3% in Hebrew, at 12 ms against 2,080 ms.
+A 170x latency difference on the node every single message passes through,
+and the small model is *more* accurate, because 10,003 labelled examples of
+exactly this task beat general capability at a task this narrow.
 
-**In English the fine-tune wins outright** — 93.1% against 85.3%, at 4.6 ms
-against 2,080 ms. That is a 450x latency difference on the node every
-single message passes through, and the small model is *more* accurate,
-because 10,003 labelled examples of exactly this task beat general
-capability at a task this narrow.
+That was not true two runs earlier, and the order matters. On
+`xlm-roberta-base` the encoder won English and **lost** Hebrew, 65.6%
+against 77.3% — which read as an argument for the cascade on language
+grounds. Model capacity took that argument away.
 
-**In Hebrew it loses** — 65.6% against 77.3%. The LLM degrades gracefully
-across languages; the fine-tune degrades badly, because its Hebrew came
-from the base model's pretraining and none of its 77 classes did.
-
-Which is the argument for the cascade rather than for replacement. Route
-English on the encoder and let confidence send the tail to the LLM; Hebrew
-traffic escalates far more often until there is Hebrew training data, and
-the confidence threshold makes that happen on its own rather than needing a
-language switch in the code.
+**The cascade still stands, on the leg that was always load-bearing.** Not
+"the LLM covers Hebrew", but: BANKING77 has no negative class, so the
+classifier cannot represent "this is not a banking question" and will label
+one confidently. Low confidence escalates. `xlm-roberta-large` is also 12 ms
+against 2.3 ms and 2.2 GB against 260 MB, so which encoder to actually
+deploy is a real trade rather than an obvious upgrade.
 
 **On the price column.** The encoder cell says "no per-request billing"
 rather than $0 — the GPU box is a fixed cost either way, and at 437
