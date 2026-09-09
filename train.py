@@ -42,6 +42,17 @@ def main():
     # probe". Cheaper and safer-sounding, and the ablation exists to show what
     # it actually costs in accuracy rather than to argue about it.
     ap.add_argument("--freeze-encoder", action="store_true")
+    # LoRA: freeze the base weights and learn a low-rank update to the attention
+    # projections instead. The reason it is here is memory, not accuracy --
+    # xlm-roberta-large needs ~9 GB of AdamW optimiser state to fine-tune fully
+    # and the card has 8 GB, so full fine-tuning it is not an option and this is.
+    ap.add_argument("--lora", action="store_true")
+    ap.add_argument("--lora-r", type=int, default=16)
+    ap.add_argument("--lora-alpha", type=int, default=32)
+    # XLM-R / RoBERTa name their attention projections query/key/value. Q and V
+    # are the conventional targets: the original paper found adapting those two
+    # matches adapting all four at half the parameters.
+    ap.add_argument("--lora-target", default="query,value")
     args = ap.parse_args()
 
     train, test = intents.english()
@@ -60,6 +71,14 @@ def main():
         args.model, num_labels=len(names),
         id2label=dict(enumerate(names)),
         label2id={n: i for i, n in enumerate(names)})
+
+    if args.lora:
+        from peft import LoraConfig, TaskType, get_peft_model
+        model = get_peft_model(model, LoraConfig(
+            task_type=TaskType.SEQ_CLS,
+            r=args.lora_r, lora_alpha=args.lora_alpha, lora_dropout=0.1,
+            target_modules=args.lora_target.split(",")))
+        model.print_trainable_parameters()
 
     if args.freeze_encoder:
         trainable = ("classifier", "pre_classifier", "score")
@@ -106,7 +125,17 @@ def main():
 
     final = trainer.evaluate()
     out = Path(args.out)
-    trainer.save_model(out / "best")
+
+    if args.lora:
+        # Merge the adapter into the base weights and save an ordinary model.
+        # This is the production path -- W' = W + BA is just a weight matrix, so
+        # a merged LoRA model has exactly zero inference overhead. It also means
+        # bench.py loads it with plain from_pretrained and the comparison stays
+        # like for like.
+        merged = trainer.model.merge_and_unload()
+        merged.save_pretrained(out / "best")
+    else:
+        trainer.save_model(out / "best")
     tok.save_pretrained(out / "best")
     (out / "result.json").write_text(json.dumps({
         "base_model": args.model,
