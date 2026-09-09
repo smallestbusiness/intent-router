@@ -38,6 +38,10 @@ def main():
     ap.add_argument("--batch", type=int, default=32)
     ap.add_argument("--lr", type=float, default=3e-5)
     ap.add_argument("--max-len", type=int, default=64)   # p99 query is far shorter
+    # Freeze the pretrained encoder and train only the added head -- a "linear
+    # probe". Cheaper and safer-sounding, and the ablation exists to show what
+    # it actually costs in accuracy rather than to argue about it.
+    ap.add_argument("--freeze-encoder", action="store_true")
     args = ap.parse_args()
 
     train, test = intents.english()
@@ -56,6 +60,15 @@ def main():
         args.model, num_labels=len(names),
         id2label=dict(enumerate(names)),
         label2id={n: i for i, n in enumerate(names)})
+
+    if args.freeze_encoder:
+        trainable = ("classifier", "pre_classifier", "score")
+        for name, param in model.named_parameters():
+            param.requires_grad = any(name.startswith(t) for t in trainable)
+        n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        n_all = sum(p.numel() for p in model.parameters())
+        print(f"frozen encoder: training {n_train:,} of {n_all:,} parameters "
+              f"({100*n_train/n_all:.2f}%)")
 
     steps_per_epoch = -(-len(train) // args.batch)
     warmup_steps = int(0.10 * steps_per_epoch * args.epochs)
