@@ -18,10 +18,11 @@ import anthropic
 import torch
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
-import banking77
+import intents
 
 LLM_MODEL = "claude-sonnet-4-6"
 PRICE_IN, PRICE_OUT = 3.00 / 1e6, 15.00 / 1e6      # $/token, claude-sonnet-4-6
+PRICE_CACHE_WRITE, PRICE_CACHE_READ = 3.75 / 1e6, 0.30 / 1e6
 
 
 # ---------- the fine-tuned router ----------
@@ -78,16 +79,23 @@ def llm_eval(texts, labels, names, limit):
     system = ("You route a bank customer's message to exactly one of 77 intents. "
               "Call the route tool with the single best-fitting intent.")
 
-    correct, times, tin, tout = 0, [], 0, 0
+    # Prompt caching on, deliberately. The 77-label enum is ~1k tokens and it is
+    # identical on every request, so without caching this baseline would lose on
+    # a mistake nobody would ship rather than on the merits. Beating an
+    # unoptimised opponent proves nothing.
+    correct, times, tin, tout, tread, twrite = 0, [], 0, 0, 0, 0
     for n, (text, label) in enumerate(zip(texts[:limit], labels[:limit])):
         t0 = time.perf_counter()
         msg = client.messages.create(
             model=LLM_MODEL, max_tokens=200, system=system, tools=[tool],
+            cache_control={"type": "ephemeral"},
             tool_choice={"type": "tool", "name": "route"},
             messages=[{"role": "user", "content": text}])
         times.append((time.perf_counter() - t0) * 1000)
         tin += msg.usage.input_tokens
         tout += msg.usage.output_tokens
+        tread += msg.usage.cache_read_input_tokens or 0
+        twrite += msg.usage.cache_creation_input_tokens or 0
         block = next((b for b in msg.content if b.type == "tool_use"), None)
         if block and block.input["intent"] == names[label]:
             correct += 1
@@ -95,10 +103,16 @@ def llm_eval(texts, labels, names, limit):
             print(f"  llm {n+1}/{min(limit, len(texts))} acc={correct/(n+1):.3f}", flush=True)
 
     n = len(times)
+    per_request = (tin * PRICE_IN + tout * PRICE_OUT
+                   + tread * PRICE_CACHE_READ + twrite * PRICE_CACHE_WRITE) / n
     return {"accuracy": correct / n, "n": n,
             "p50_ms": round(statistics.median(times), 1),
             "p95_ms": round(statistics.quantiles(times, n=20)[18], 1),
-            "usd_per_1m_requests": round((tin / n * PRICE_IN + tout / n * PRICE_OUT) * 1e6, 2)}
+            "usd_per_1m_requests": round(per_request * 1e6, 2),
+            "cache_hit_rate": round(tread / max(tread + tin, 1), 3),
+            "tokens_per_request": {"uncached_in": round(tin / n, 1),
+                                   "cache_read": round(tread / n, 1),
+                                   "out": round(tout / n, 1)}}
 
 
 def main():
@@ -106,10 +120,13 @@ def main():
     ap.add_argument("--model", default="runs/distilbert/best")
     ap.add_argument("--llm-limit", type=int, default=385)   # 5 per intent
     ap.add_argument("--hebrew", action="store_true")
+    # The LLM side of the comparison does not change when the encoder does, so
+    # it is measured once and reused rather than re-billed per encoder.
+    ap.add_argument("--skip-llm", action="store_true")
     ap.add_argument("--out", default="results.json")
     args = ap.parse_args()
 
-    _, test = banking77.english()
+    _, test = intents.english()
     names = test.features["label"].names
     tok, model = load(args.model)
 
@@ -121,16 +138,18 @@ def main():
     print(json.dumps(results["encoder_en_gpu"], indent=2), flush=True)
 
     if args.hebrew:
-        rows = banking77.hebrew_test()
+        rows = intents.hebrew_test()
         he_texts = [r["text_he"] for r in rows]
         he_labels = [r["label"] for r in rows]
         # The same examples in English, so the delta is language and nothing else.
         results["encoder_he_gpu"] = encoder_eval(tok, model, he_texts, he_labels, "cuda")
         results["encoder_en_samesample"] = encoder_eval(
             tok, model, [r["text"] for r in rows], he_labels, "cuda")
-        results["llm_he"] = llm_eval(he_texts, he_labels, names, args.llm_limit)
+        if not args.skip_llm:
+            results["llm_he"] = llm_eval(he_texts, he_labels, names, args.llm_limit)
 
-    results["llm_en"] = llm_eval(texts, labels, names, args.llm_limit)
+    if not args.skip_llm:
+        results["llm_en"] = llm_eval(texts, labels, names, args.llm_limit)
 
     Path(args.out).write_text(json.dumps(results, indent=2, ensure_ascii=False))
     print(json.dumps(results, indent=2, ensure_ascii=False))

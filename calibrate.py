@@ -11,7 +11,7 @@ import json
 import torch
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
-import banking77
+import intents
 
 
 @torch.no_grad()
@@ -26,7 +26,7 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model.to(device)
 
-    _, test = banking77.english()
+    _, test = intents.english()
     texts, labels = list(test["text"]), list(test["label"])
 
     confs, preds = [], []

@@ -13,13 +13,8 @@ abbreviated and full of English product names. That needs real logs.
 """
 import argparse
 import json
-import os
 from collections import defaultdict
 from pathlib import Path
-
-import anthropic
-
-import banking77
 
 MODEL = "claude-sonnet-4-6"
 BATCH = 25
@@ -36,19 +31,33 @@ def stratified(test, per_intent):
     return out
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--per-intent", type=int, default=4)   # 77 * 4 = 308 examples
-    ap.add_argument("--out", default="data/test_he.json")
-    args = ap.parse_args()
-
-    _, test = banking77.english()
+def dump(args):
+    """Write the English sample. Runs where `datasets` is -- the GPU box."""
+    import intents
+    _, test = intents.english()
     rows = stratified(test, args.per_intent)
-    print(f"translating {len(rows)} examples across {len(set(r['label'] for r in rows))} intents")
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(rows, ensure_ascii=False, indent=1), encoding="utf-8")
+    print(f"wrote {len(rows)} examples across "
+          f"{len(set(r['label'] for r in rows))} intents to {out}")
+
+
+def translate(args):
+    """Translate the sample. Runs where the API key is -- the laptop.
+
+    Split from `dump` on purpose: the GPU box needs the dataset library and the
+    laptop holds the credential, and neither needs to acquire the other's.
+    """
+    import anthropic
+
+    rows = json.loads(Path(args.out).read_text(encoding="utf-8"))
+    todo = [r for r in rows if not r.get("text_he")]
+    print(f"{len(todo)} of {len(rows)} still to translate")
 
     client = anthropic.Anthropic()
-    for start in range(0, len(rows), BATCH):
-        chunk = rows[start:start + BATCH]
+    for start in range(0, len(todo), BATCH):
+        chunk = todo[start:start + BATCH]
         numbered = "\n".join(f"{i+1}. {r['text']}" for i, r in enumerate(chunk))
         msg = client.messages.create(
             model=MODEL, max_tokens=4000,
@@ -62,15 +71,20 @@ def main():
         assert len(lines) == len(chunk), f"got {len(lines)} for {len(chunk)}"
         for row, line in zip(chunk, lines):
             row["text_he"] = line.split(".", 1)[1].strip() if "." in line[:4] else line.strip()
-        print(f"  {start + len(chunk)}/{len(rows)}", flush=True)
+        print(f"  {start + len(chunk)}/{len(todo)}", flush=True)
+        # Written every batch, so an API hiccup costs one batch and not the run.
+        Path(args.out).write_text(json.dumps(rows, ensure_ascii=False, indent=1),
+                                  encoding="utf-8")
 
-    out = Path(args.out)
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(rows, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(f"wrote {out}")
+    print(f"wrote {args.out}")
     for r in rows[:3]:
         print(f"  {r['text']}  ->  {r['text_he']}")
 
 
 if __name__ == "__main__":
-    main()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("step", choices=["dump", "translate"])
+    ap.add_argument("--per-intent", type=int, default=4)   # 77 * 4 = 308 examples
+    ap.add_argument("--out", default="data/test_he.json")
+    a = ap.parse_args()
+    (dump if a.step == "dump" else translate)(a)

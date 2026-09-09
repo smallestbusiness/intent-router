@@ -15,9 +15,16 @@ CACHE = Path(os.environ.get("ROUTER_DATA", "data"))
 HEBREW_TEST = CACHE / "test_he.json"
 
 
+# Not PolyAI/banking77, which is the canonical home but ships a loader script;
+# datasets 5.x refuses to execute those. This mirror is the same 10,003/3,080
+# split as parquet, and keeps `label` as a ClassLabel so the 77 intent names
+# come from the data rather than from a list copied into this file.
+SOURCE = "legacy-datasets/banking77"
+
+
 def english():
     """train / test splits as HuggingFace datasets, with `label` and `text`."""
-    ds = load_dataset("PolyAI/banking77")
+    ds = load_dataset(SOURCE)
     return ds["train"], ds["test"]
 
 

@@ -18,7 +18,7 @@ from sklearn.metrics import accuracy_score, f1_score
 from transformers import (AutoModelForSequenceClassification, AutoTokenizer,
                           Trainer, TrainingArguments)
 
-import banking77
+import intents
 
 
 def metrics(pred):
@@ -40,7 +40,7 @@ def main():
     ap.add_argument("--max-len", type=int, default=64)   # p99 query is far shorter
     args = ap.parse_args()
 
-    train, test = banking77.english()
+    train, test = intents.english()
     names = test.features["label"].names
     print(f"{len(train)} train / {len(test)} test / {len(names)} intents")
 
@@ -57,20 +57,28 @@ def main():
         id2label=dict(enumerate(names)),
         label2id={n: i for i, n in enumerate(names)})
 
+    steps_per_epoch = -(-len(train) // args.batch)
+    warmup_steps = int(0.10 * steps_per_epoch * args.epochs)
+
     targs = TrainingArguments(
         output_dir=args.out,
         num_train_epochs=args.epochs,
         per_device_train_batch_size=args.batch,
         per_device_eval_batch_size=128,
         learning_rate=args.lr,
-        warmup_ratio=0.1,
+        # transformers 5.x dropped warmup_ratio; warmup_steps is computed from
+        # the same 10% so the schedule is unchanged and the number stays visible.
+        warmup_steps=warmup_steps,
         weight_decay=0.01,
         eval_strategy="epoch",
         save_strategy="epoch",
         load_best_model_at_end=True,
         metric_for_best_model="accuracy",
         logging_steps=50,
-        fp16=torch.cuda.is_available(),
+        # Not fp16: the 1080 is Pascal, which has no tensor cores and runs half
+        # precision at a fraction of fp32 throughput. Half precision is a win on
+        # Ampere and later, and a loss here.
+        fp16=False,
         dataloader_num_workers=4,          # 48 cores on the box; this is plenty
         report_to=[],
     )
