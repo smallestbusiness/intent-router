@@ -32,11 +32,25 @@ OOS = "out_of_scope"
 NEGATIVES = CACHE / "negatives.json"
 
 
-def negatives():
-    return json.loads(NEGATIVES.read_text(encoding="utf-8"))
+ADJACENT = CACHE / "negatives_adjacent.json"
 
 
-def english_with_negatives():
+def negatives(adjacent=False):
+    """The off-topic sets. `adjacent=True` folds in the financial neighbours.
+
+    Kept as one merged structure rather than two, because the question is
+    whether a single negative class can carry both kinds of off-topic -- the
+    obviously-unrelated and the financially-adjacent -- and merging is what
+    that hypothesis looks like in code.
+    """
+    data = json.loads(NEGATIVES.read_text(encoding="utf-8"))
+    if not adjacent:
+        return data
+    extra = json.loads(ADJACENT.read_text(encoding="utf-8"))
+    return {k: data[k] + extra[k] for k in data}
+
+
+def english_with_negatives(adjacent=False):
     """BANKING77 plus a 78th out-of-scope class, as plain Datasets.
 
     The training eval set gets the *seen* negatives so that checkpoint selection
@@ -49,7 +63,7 @@ def english_with_negatives():
     train, test = english()
     names = list(test.features["label"].names) + [OOS]
     oos = len(names) - 1
-    neg = negatives()
+    neg = negatives(adjacent)
 
     tr = ([{"text": r["text"], "label": r["label"]} for r in train]
           + [{"text": r["text"], "label": oos} for r in neg["train"]])

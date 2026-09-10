@@ -58,12 +58,13 @@ def main():
     ap.add_argument("--class-model", default="runs/xlmr-neg/best")
     ap.add_argument("--t", type=float, default=0.75)
     ap.add_argument("--out", default="ood_results.json")
+    ap.add_argument("--adjacent", action="store_true")
     args = ap.parse_args()
 
     _, test = intents.english()
     id_texts = list(test["text"])
     id_gold = [test.features["label"].names[i] for i in test["label"]]
-    neg = intents.negatives()
+    neg = intents.negatives(args.adjacent)
 
     results = {"threshold": args.t}
 

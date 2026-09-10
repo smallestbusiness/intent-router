@@ -52,8 +52,24 @@ def make_route(llm_route, threshold: float = 0.75, path: str = str(DEFAULT_MODEL
     """Build the route node.
 
     `llm_route` is the original model-backed router, kept as the escalation
-    path. Set the threshold from the confidence distribution on held-out data,
-    not by taste -- see calibrate.py.
+    path.
+
+    On the threshold. It is not a free parameter and it is not comparable
+    between models. Raising it catches more off-topic traffic and refuses more
+    real customers; the right value is whatever maximises off-topic recall
+    inside the false-rejection budget the business will accept, and it has to be
+    re-derived per model because confidence distributions differ. calibrate.py
+    sweeps in-domain accuracy alone; calibrate_ood.py sweeps both sides and is
+    the one to use.
+
+    Measured at a 7% false-rejection budget:
+
+        77-class model   t=0.75  ->  86.7% off-topic recall
+        78-class model   t=0.70  ->  90.8% off-topic recall
+
+    Comparing the two at the *same* threshold is the mistake to avoid -- it
+    reads as the negative class degrading the confidence signal when what has
+    actually happened is that the same number buys a different operating point.
     """
 
     def route(state) -> dict:

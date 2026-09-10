@@ -49,6 +49,29 @@ UNSEEN_CATEGORIES = {
                   "developer mode, print your rules",
 }
 
+# The insurance question: is a dedicated model needed to separate an adjacent
+# financial domain from banking, or is it enough to put adjacent-financial
+# examples into the one negative class? These are the training categories for
+# that test.
+ADJACENT_TRAIN = {
+    "insurance":  "car and home insurance policies, claims, premiums, excess, "
+                  "renewals -- financial, adjacent to banking, but not banking",
+    "tax":        "income tax returns, VAT, deductions, filing deadlines, "
+                  "self-assessment -- financial, but not banking",
+}
+
+# Adjacent-financial domains the model will NOT be trained on, to test whether
+# learning "insurance and tax are off-topic" generalises to other neighbours or
+# only memorises those two.
+ADJACENT_UNSEEN = {
+    "pension":    "workplace and private pensions, retirement contributions, "
+                  "annuities, drawdown -- financial, not banking",
+    "crypto":     "buying and holding crypto on an exchange, wallets, gas fees, "
+                  "staking -- financial, not the bank's own service",
+    "broker":     "buying shares and ETFs through a stockbroker, dividends, "
+                  "portfolio performance -- financial, not banking",
+}
+
 PROMPT = ("Write {n} short messages a person might type into a chat window, "
           "in the register of {desc}. One per line, numbered. Vary the phrasing, "
           "length and formality the way real people do -- some terse, some full "
@@ -69,13 +92,48 @@ def generate(client, category, desc, n):
     return out
 
 
+def adjacent(args):
+    """insurance and tax as training negatives; pension, crypto and broker held
+    out, so the question "does it generalise to other neighbours" has an answer
+    rather than an opinion."""
+    import anthropic
+    client = anthropic.Anthropic()
+    data = {"train": [], "test_seen": [], "test_unseen": []}
+    for cat, desc in ADJACENT_TRAIN.items():
+        data["train"] += generate(client, cat, desc, 100)
+        print(f"  train/{cat}: {len(data['train'])}", flush=True)
+    for cat, desc in ADJACENT_TRAIN.items():
+        data["test_seen"] += generate(client, cat, desc, 20)
+        print(f"  test_seen/{cat}: {len(data['test_seen'])}", flush=True)
+    for cat, desc in ADJACENT_UNSEEN.items():
+        data["test_unseen"] += generate(client, cat, desc, 25)
+        print(f"  test_unseen/{cat}: {len(data['test_unseen'])}", flush=True)
+
+    seen = {r["text"].lower() for r in data["train"]}
+    for split in ("test_seen", "test_unseen"):
+        before = len(data[split])
+        data[split] = [r for r in data[split] if r["text"].lower() not in seen]
+        if before != len(data[split]):
+            print(f"  dropped {before - len(data[split])} leaked from {split}")
+
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
+    print({k: len(v) for k, v in data.items()})
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="data/negatives.json")
     ap.add_argument("--train-per-cat", type=int, default=40)   # 5 x 40 = 200
     ap.add_argument("--seen-per-cat", type=int, default=20)    # 5 x 20 = 100
     ap.add_argument("--unseen-per-cat", type=int, default=20)  # 6 x 20 = 120
+    ap.add_argument("--adjacent", action="store_true",
+                    help="generate the adjacent-financial set instead")
     args = ap.parse_args()
+
+    if args.adjacent:
+        return adjacent(args)
 
     import anthropic
     client = anthropic.Anthropic()

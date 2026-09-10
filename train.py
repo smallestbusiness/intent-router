@@ -56,10 +56,13 @@ def main():
     # Add a 78th "out_of_scope" class trained on non-banking messages, instead
     # of relying on a confidence threshold to spot them.
     ap.add_argument("--negatives", action="store_true")
+    # Also train on insurance and tax -- financial domains that sit next to
+    # banking and that neither the threshold nor the general negatives separate.
+    ap.add_argument("--adjacent-negatives", action="store_true")
     args = ap.parse_args()
 
-    if args.negatives:
-        train, test, names = intents.english_with_negatives()
+    if args.negatives or args.adjacent_negatives:
+        train, test, names = intents.english_with_negatives(args.adjacent_negatives)
     else:
         train, test = intents.english()
         names = test.features["label"].names
