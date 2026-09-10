@@ -53,10 +53,16 @@ def main():
     # are the conventional targets: the original paper found adapting those two
     # matches adapting all four at half the parameters.
     ap.add_argument("--lora-target", default="query,value")
+    # Add a 78th "out_of_scope" class trained on non-banking messages, instead
+    # of relying on a confidence threshold to spot them.
+    ap.add_argument("--negatives", action="store_true")
     args = ap.parse_args()
 
-    train, test = intents.english()
-    names = test.features["label"].names
+    if args.negatives:
+        train, test, names = intents.english_with_negatives()
+    else:
+        train, test = intents.english()
+        names = test.features["label"].names
     print(f"{len(train)} train / {len(test)} test / {len(names)} intents")
 
     tok = AutoTokenizer.from_pretrained(args.model)

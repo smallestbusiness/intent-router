@@ -1,0 +1,73 @@
+{
+  "threshold": 0.75,
+  "A_threshold_only": {
+    "model": "runs/xlmr/best",
+    "in_domain_accuracy_raw": 0.9315,
+    "false_rejection_class_only": 0.0,
+    "false_rejection_threshold_only": 0.0659,
+    "false_rejection_both": 0.0659,
+    "in_domain_accuracy_after_refusal": 0.9006,
+    "test_seen": {
+      "n": 72,
+      "recall_class_only": 0.0,
+      "recall_threshold_only": 0.9444,
+      "recall_both": 0.9444,
+      "per_category_recall_both": {
+        "chitchat": 0.944,
+        "cooking": 1.0,
+        "sports": 1.0,
+        "trivia": 0.917,
+        "weather": 0.846
+      }
+    },
+    "test_unseen": {
+      "n": 120,
+      "recall_class_only": 0.0,
+      "recall_threshold_only": 0.8667,
+      "recall_both": 0.8667,
+      "per_category_recall_both": {
+        "injection": 0.95,
+        "insurance": 0.75,
+        "medical": 0.85,
+        "tax": 0.9,
+        "techsupport": 0.95,
+        "travel": 0.8
+      }
+    }
+  },
+  "B_negative_class": {
+    "model": "runs/xlmr-neg/best",
+    "in_domain_accuracy_raw": 0.9315,
+    "false_rejection_class_only": 0.0006,
+    "false_rejection_threshold_only": 0.0734,
+    "false_rejection_both": 0.0737,
+    "in_domain_accuracy_after_refusal": 0.8942,
+    "test_seen": {
+      "n": 72,
+      "recall_class_only": 1.0,
+      "recall_threshold_only": 0.0,
+      "recall_both": 1.0,
+      "per_category_recall_both": {
+        "chitchat": 1.0,
+        "cooking": 1.0,
+        "sports": 1.0,
+        "trivia": 1.0,
+        "weather": 1.0
+      }
+    },
+    "test_unseen": {
+      "n": 120,
+      "recall_class_only": 0.2167,
+      "recall_threshold_only": 0.7917,
+      "recall_both": 0.9167,
+      "per_category_recall_both": {
+        "injection": 1.0,
+        "insurance": 0.75,
+        "medical": 0.95,
+        "tax": 0.9,
+        "techsupport": 1.0,
+        "travel": 0.9
+      }
+    }
+  }
+}

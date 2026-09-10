@@ -28,6 +28,36 @@ def english():
     return ds["train"], ds["test"]
 
 
+OOS = "out_of_scope"
+NEGATIVES = CACHE / "negatives.json"
+
+
+def negatives():
+    return json.loads(NEGATIVES.read_text(encoding="utf-8"))
+
+
+def english_with_negatives():
+    """BANKING77 plus a 78th out-of-scope class, as plain Datasets.
+
+    The training eval set gets the *seen* negatives so that checkpoint selection
+    rewards a model that can refuse. The *unseen* negatives are never touched
+    during training -- they are the only honest measure of whether an explicit
+    negative class generalises past the categories it was shown.
+    """
+    from datasets import Dataset
+
+    train, test = english()
+    names = list(test.features["label"].names) + [OOS]
+    oos = len(names) - 1
+    neg = negatives()
+
+    tr = ([{"text": r["text"], "label": r["label"]} for r in train]
+          + [{"text": r["text"], "label": oos} for r in neg["train"]])
+    ev = ([{"text": r["text"], "label": r["label"]} for r in test]
+          + [{"text": r["text"], "label": oos} for r in neg["test_seen"]])
+    return Dataset.from_list(tr), Dataset.from_list(ev), names
+
+
 def label_names():
     _, test = english()
     return test.features["label"].names
