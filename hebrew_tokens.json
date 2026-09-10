@@ -1,0 +1,22 @@
+{
+  "claude-sonnet-4-6": {
+    "n": 120,
+    "en_tokens_mean": 20.6,
+    "he_tokens_mean": 37.4,
+    "ratio_mean": 1.813,
+    "ratio_median": 1.796,
+    "en_chars_mean": 56.5,
+    "he_chars_mean": 42.8
+  },
+  "distilbert (English-only)": {
+    "en_tokens_mean": 13.7,
+    "he_tokens_mean": 34.6,
+    "ratio_mean": 2.645
+  },
+  "xlm-roberta (multilingual encoder)": {
+    "en_tokens_mean": 14.2,
+    "he_tokens_mean": 13.6,
+    "ratio_mean": 0.993,
+    "note": "measured on the GPU box; identical for base and large+LoRA"
+  }
+}
