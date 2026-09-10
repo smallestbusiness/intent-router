@@ -286,9 +286,134 @@ sampling it.
    enumerate the ways users go off-topic — which is exactly the thing you cannot
    do in advance. Mine them from real chat logs instead; that is a sample of the
    actual distribution rather than a guess at it.
-4. **Watch the confidence side-effect.** Adding a negative class shifts
-   calibration, and it shifted it in the wrong direction for unseen input here.
-   Re-calibrate rather than inheriting the old threshold.
+4. **Re-calibrate after adding the class.** Its confidence distribution moves, so
+   the old threshold no longer buys the same operating point. The
+   re-calibration section below reverses this section's reading of the
+   threshold-versus-class split.
+
+### Re-calibration: compare at matched cost, never at a shared threshold
+
+The first pass read both models at t=0.75 and concluded that a trained negative
+class cannibalises the confidence signal. That conclusion was wrong, and the way
+it was wrong is worth more than the result.
+
+0.75 was calibrated for the model *without* the negative class. The 78-class
+model's confidences sit higher, so the same number is a stricter filter on it —
+it reaches the same false-rejection rate at a *lower* threshold. Comparing two
+systems at a shared hyperparameter compares them at two different operating
+points.
+
+`calibrate_ood.py` sweeps both sides — what the threshold costs in refused
+customers, what it catches in off-topic traffic — and reports the best off-topic
+recall available inside a fixed false-rejection budget. False rejection is what
+the customer feels, so it is the constraint a bank would actually set.
+
+| False-rejection budget | 77-class | 78-class, general negatives | 78-class, + adjacent |
+|---|---|---|---|
+| ≤3% | t=0.50 → 63.6% | t=0.50 → 70.8% | t=0.50 → 85.6% |
+| ≤5% | t=0.65 → 75.4% | t=0.65 → 85.1% | t=0.65 → 90.3% |
+| ≤7% | t=0.75 → 86.2% | t=0.70 → 87.7% | t=0.75 → 93.3% |
+| ≤10% | t=0.85 → 91.8% | t=0.80 → 95.9% | t=0.80 → 96.4% |
+
+At matched cost the negative class wins everywhere, and the version trained on
+adjacent-financial negatives wins by a lot: **85.6% against 63.6% at the
+tightest budget.** Nothing about the earlier "one mechanism got worse" reading
+survives.
+
+---
+
+## Is a dedicated model needed to separate insurance from banking?
+
+`insurance` was the worst category in every run and the general negative class
+did not move it. The obvious next thought is a second model trained on that one
+boundary. The cheaper thing to try first is putting insurance into the negative
+class the router already has, so that is what was measured.
+
+200 adjacent-financial negatives — insurance and tax — folded into the existing
+class, bringing it to 400 examples across 7 categories. `pension`, `crypto` and
+`broker` were held out entirely: three more financial neighbours it would never
+see, so "does it generalise to other neighbours" has an answer rather than an
+opinion.
+
+### It fixed insurance, and cost nothing in-domain
+
+| | 77-class | + adjacent negatives |
+|---|---|---|
+| `insurance` recall | 75% | **95%** |
+| `tax` recall | 90% | **100%** |
+| Overall unseen off-topic recall | 86.2% | **93.3%** |
+| In-domain accuracy | 93.15% | 93.28% |
+| False rejection of real customers | 6.59% | 6.69% |
+| Accuracy after refusals | 90.06% | 90.13% |
+
+The risk worth being afraid of was the last three rows, not the first two.
+Insurance shares vocabulary with banking — *make a claim*, *premium*, *policy*,
+*direct debit* — so teaching a model to reject insurance could plausibly teach
+it to reject genuine customers. **It did not.** False rejection moved 6.59% to
+6.69%, which is noise, and in-domain accuracy went very slightly up rather than
+down.
+
+### The class generalises much better than the first run suggested
+
+The earlier conclusion was that the negative class "learned five more intents"
+rather than learning to refuse, on the evidence that it caught 21.7% of unseen
+categories on its own. That held for five categories of one kind. It does not
+hold once the negatives span two kinds:
+
+| Negative training set | Class-only recall on unseen categories |
+|---|---|
+| 5 categories, all obviously unrelated | 21.7% |
+| 7 categories across two kinds (unrelated + financial) | **69.7%** |
+
+**Tripled, by making the negatives more varied rather than more numerous.** What
+the class learns is bounded by the shape of what it was shown, and two kinds of
+off-topic teach it far more than one kind does. That is outlier exposure, and it
+is the strongest practical argument for mining negatives from real logs — logs
+are diverse in ways a person writing categories is not.
+
+### But transfer between neighbours is weak, which is the real limit
+
+| Category | 77-class | + adjacent | trained on? |
+|---|---|---|---|
+| `broker` | 88% | 88% | no |
+| `crypto` | 92% | 92% | no |
+| `injection` | 95% | 95% | no |
+| `insurance` | 75% | 95% | **yes** |
+| `medical` | 85% | 100% | no |
+| `pension` | 76% | 84% | no |
+| `tax` | 90% | 100% | **yes** |
+| `techsupport` | 95% | 100% | no |
+| `travel` | 80% | 90% | no |
+
+The two trained categories jump 20 and 10 points. The three held-out financial
+neighbours barely move: `pension` 76% to 84%, `crypto` and `broker` not at all.
+Training on insurance and tax did **not** teach "financially adjacent but not
+ours" as a concept — it taught insurance and tax.
+
+### The answer
+
+**No — a dedicated insurance-versus-banking model is not worth building.**
+
+1. **One extra class already solved it.** 75% to 95%, for 200 generated examples
+   and twenty minutes, at no measurable in-domain cost. A second model on the
+   hot path would have to beat that while adding latency, a deployment, and a
+   second thing to keep calibrated.
+2. **It solves exactly one neighbour.** `pension`, `crypto` and `broker` are
+   still open, and each would need its own model. That is the enumeration
+   problem moved up a level and made more expensive, not solved.
+3. **A specialist cannot be invoked selectively.** You do not know a message is
+   insurance-adjacent until something has classified it, so the specialist would
+   run on every message — meaning it must have near-perfect precision on all
+   3,080 real banking queries or it becomes a new source of false rejection.
+
+The case where the answer flips: if the bank **sells insurance too**, so the
+boundary is a high-volume, permanent, business-critical distinction rather than
+an off-topic case. Then it is not a negative class at all — insurance becomes a
+first-class intent group with its own labels, and the router routes to it rather
+than refusing it.
+
+The general rule worth stating: **more negative data beats more models, and more
+varied negative data beats more of the same.**
 
 ## Running it
 

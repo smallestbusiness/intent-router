@@ -1,0 +1,83 @@
+{
+  "threshold": 0.75,
+  "A_threshold_only": {
+    "model": "runs/xlmr/best",
+    "in_domain_accuracy_raw": 0.9315,
+    "false_rejection_class_only": 0.0,
+    "false_rejection_threshold_only": 0.0659,
+    "false_rejection_both": 0.0659,
+    "in_domain_accuracy_after_refusal": 0.9006,
+    "test_seen": {
+      "n": 112,
+      "recall_class_only": 0.0,
+      "recall_threshold_only": 0.8393,
+      "recall_both": 0.8393,
+      "per_category_recall_both": {
+        "chitchat": 0.944,
+        "cooking": 1.0,
+        "insurance": 0.7,
+        "sports": 1.0,
+        "tax": 0.6,
+        "trivia": 0.917,
+        "weather": 0.846
+      }
+    },
+    "test_unseen": {
+      "n": 195,
+      "recall_class_only": 0.0,
+      "recall_threshold_only": 0.8615,
+      "recall_both": 0.8615,
+      "per_category_recall_both": {
+        "broker": 0.88,
+        "crypto": 0.92,
+        "injection": 0.95,
+        "insurance": 0.75,
+        "medical": 0.85,
+        "pension": 0.76,
+        "tax": 0.9,
+        "techsupport": 0.95,
+        "travel": 0.8
+      }
+    }
+  },
+  "B_negative_class": {
+    "model": "runs/xlmr-adj/best",
+    "in_domain_accuracy_raw": 0.9328,
+    "false_rejection_class_only": 0.0016,
+    "false_rejection_threshold_only": 0.0662,
+    "false_rejection_both": 0.0669,
+    "in_domain_accuracy_after_refusal": 0.9013,
+    "test_seen": {
+      "n": 112,
+      "recall_class_only": 0.9554,
+      "recall_threshold_only": 0.0268,
+      "recall_both": 0.9732,
+      "per_category_recall_both": {
+        "chitchat": 1.0,
+        "cooking": 1.0,
+        "insurance": 0.9,
+        "sports": 1.0,
+        "tax": 0.95,
+        "trivia": 1.0,
+        "weather": 1.0
+      }
+    },
+    "test_unseen": {
+      "n": 195,
+      "recall_class_only": 0.6974,
+      "recall_threshold_only": 0.3282,
+      "recall_both": 0.9333,
+      "per_category_recall_both": {
+        "broker": 0.88,
+        "crypto": 0.92,
+        "injection": 0.95,
+        "insurance": 0.95,
+        "medical": 1.0,
+        "pension": 0.84,
+        "tax": 1.0,
+        "techsupport": 1.0,
+        "travel": 0.9
+      }
+    }
+  }
+}

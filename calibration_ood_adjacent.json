@@ -1,0 +1,419 @@
+{
+  "runs/xlmr/best": {
+    "curve": [
+      {
+        "threshold": 0.0,
+        "false_rejection": 0.0,
+        "handled_locally": 1.0,
+        "accuracy_on_kept": 0.9315,
+        "ood_recall_unseen": 0.0
+      },
+      {
+        "threshold": 0.3,
+        "false_rejection": 0.0049,
+        "handled_locally": 0.9951,
+        "accuracy_on_kept": 0.9354,
+        "ood_recall_unseen": 0.3436
+      },
+      {
+        "threshold": 0.4,
+        "false_rejection": 0.0094,
+        "handled_locally": 0.9906,
+        "accuracy_on_kept": 0.9387,
+        "ood_recall_unseen": 0.5128
+      },
+      {
+        "threshold": 0.5,
+        "false_rejection": 0.0211,
+        "handled_locally": 0.9789,
+        "accuracy_on_kept": 0.9433,
+        "ood_recall_unseen": 0.6359
+      },
+      {
+        "threshold": 0.6,
+        "false_rejection": 0.0377,
+        "handled_locally": 0.9623,
+        "accuracy_on_kept": 0.9514,
+        "ood_recall_unseen": 0.7333
+      },
+      {
+        "threshold": 0.65,
+        "false_rejection": 0.0451,
+        "handled_locally": 0.9549,
+        "accuracy_on_kept": 0.9548,
+        "ood_recall_unseen": 0.7538
+      },
+      {
+        "threshold": 0.7,
+        "false_rejection": 0.0536,
+        "handled_locally": 0.9464,
+        "accuracy_on_kept": 0.9581,
+        "ood_recall_unseen": 0.8256
+      },
+      {
+        "threshold": 0.75,
+        "false_rejection": 0.0659,
+        "handled_locally": 0.9341,
+        "accuracy_on_kept": 0.9642,
+        "ood_recall_unseen": 0.8615
+      },
+      {
+        "threshold": 0.8,
+        "false_rejection": 0.0782,
+        "handled_locally": 0.9218,
+        "accuracy_on_kept": 0.9697,
+        "ood_recall_unseen": 0.8872
+      },
+      {
+        "threshold": 0.85,
+        "false_rejection": 0.0935,
+        "handled_locally": 0.9065,
+        "accuracy_on_kept": 0.9724,
+        "ood_recall_unseen": 0.9179
+      },
+      {
+        "threshold": 0.9,
+        "false_rejection": 0.1318,
+        "handled_locally": 0.8682,
+        "accuracy_on_kept": 0.9787,
+        "ood_recall_unseen": 0.9487
+      },
+      {
+        "threshold": 0.93,
+        "false_rejection": 0.1711,
+        "handled_locally": 0.8289,
+        "accuracy_on_kept": 0.9832,
+        "ood_recall_unseen": 0.9641
+      },
+      {
+        "threshold": 0.95,
+        "false_rejection": 0.2328,
+        "handled_locally": 0.7672,
+        "accuracy_on_kept": 0.9873,
+        "ood_recall_unseen": 0.9795
+      },
+      {
+        "threshold": 0.97,
+        "false_rejection": 0.4029,
+        "handled_locally": 0.5971,
+        "accuracy_on_kept": 0.9924,
+        "ood_recall_unseen": 0.9897
+      },
+      {
+        "threshold": 0.99,
+        "false_rejection": 1.0,
+        "handled_locally": 0.0,
+        "accuracy_on_kept": 0.0,
+        "ood_recall_unseen": 1.0
+      }
+    ],
+    "operating_points": {
+      "0.03": {
+        "threshold": 0.5,
+        "false_rejection": 0.0211,
+        "handled_locally": 0.9789,
+        "accuracy_on_kept": 0.9433,
+        "ood_recall_unseen": 0.6359
+      },
+      "0.05": {
+        "threshold": 0.65,
+        "false_rejection": 0.0451,
+        "handled_locally": 0.9549,
+        "accuracy_on_kept": 0.9548,
+        "ood_recall_unseen": 0.7538
+      },
+      "0.07": {
+        "threshold": 0.75,
+        "false_rejection": 0.0659,
+        "handled_locally": 0.9341,
+        "accuracy_on_kept": 0.9642,
+        "ood_recall_unseen": 0.8615
+      },
+      "0.1": {
+        "threshold": 0.85,
+        "false_rejection": 0.0935,
+        "handled_locally": 0.9065,
+        "accuracy_on_kept": 0.9724,
+        "ood_recall_unseen": 0.9179
+      }
+    }
+  },
+  "runs/xlmr-neg/best": {
+    "curve": [
+      {
+        "threshold": 0.0,
+        "false_rejection": 0.0006,
+        "handled_locally": 0.9994,
+        "accuracy_on_kept": 0.9321,
+        "ood_recall_unseen": 0.1897
+      },
+      {
+        "threshold": 0.3,
+        "false_rejection": 0.0052,
+        "handled_locally": 0.9948,
+        "accuracy_on_kept": 0.9357,
+        "ood_recall_unseen": 0.5026
+      },
+      {
+        "threshold": 0.4,
+        "false_rejection": 0.0127,
+        "handled_locally": 0.9873,
+        "accuracy_on_kept": 0.9408,
+        "ood_recall_unseen": 0.6051
+      },
+      {
+        "threshold": 0.5,
+        "false_rejection": 0.0253,
+        "handled_locally": 0.9747,
+        "accuracy_on_kept": 0.9457,
+        "ood_recall_unseen": 0.7077
+      },
+      {
+        "threshold": 0.6,
+        "false_rejection": 0.0399,
+        "handled_locally": 0.9601,
+        "accuracy_on_kept": 0.953,
+        "ood_recall_unseen": 0.7949
+      },
+      {
+        "threshold": 0.65,
+        "false_rejection": 0.0494,
+        "handled_locally": 0.9506,
+        "accuracy_on_kept": 0.9559,
+        "ood_recall_unseen": 0.8513
+      },
+      {
+        "threshold": 0.7,
+        "false_rejection": 0.0627,
+        "handled_locally": 0.9373,
+        "accuracy_on_kept": 0.9626,
+        "ood_recall_unseen": 0.8769
+      },
+      {
+        "threshold": 0.75,
+        "false_rejection": 0.0737,
+        "handled_locally": 0.9263,
+        "accuracy_on_kept": 0.9653,
+        "ood_recall_unseen": 0.8974
+      },
+      {
+        "threshold": 0.8,
+        "false_rejection": 0.0844,
+        "handled_locally": 0.9156,
+        "accuracy_on_kept": 0.9688,
+        "ood_recall_unseen": 0.959
+      },
+      {
+        "threshold": 0.85,
+        "false_rejection": 0.1016,
+        "handled_locally": 0.8984,
+        "accuracy_on_kept": 0.9736,
+        "ood_recall_unseen": 0.959
+      },
+      {
+        "threshold": 0.9,
+        "false_rejection": 0.1354,
+        "handled_locally": 0.8646,
+        "accuracy_on_kept": 0.9763,
+        "ood_recall_unseen": 0.9692
+      },
+      {
+        "threshold": 0.93,
+        "false_rejection": 0.1945,
+        "handled_locally": 0.8055,
+        "accuracy_on_kept": 0.9815,
+        "ood_recall_unseen": 0.9692
+      },
+      {
+        "threshold": 0.95,
+        "false_rejection": 0.263,
+        "handled_locally": 0.737,
+        "accuracy_on_kept": 0.9863,
+        "ood_recall_unseen": 0.9744
+      },
+      {
+        "threshold": 0.97,
+        "false_rejection": 0.4552,
+        "handled_locally": 0.5448,
+        "accuracy_on_kept": 0.994,
+        "ood_recall_unseen": 0.9897
+      },
+      {
+        "threshold": 0.99,
+        "false_rejection": 0.9974,
+        "handled_locally": 0.0026,
+        "accuracy_on_kept": 1.0,
+        "ood_recall_unseen": 1.0
+      }
+    ],
+    "operating_points": {
+      "0.03": {
+        "threshold": 0.5,
+        "false_rejection": 0.0253,
+        "handled_locally": 0.9747,
+        "accuracy_on_kept": 0.9457,
+        "ood_recall_unseen": 0.7077
+      },
+      "0.05": {
+        "threshold": 0.65,
+        "false_rejection": 0.0494,
+        "handled_locally": 0.9506,
+        "accuracy_on_kept": 0.9559,
+        "ood_recall_unseen": 0.8513
+      },
+      "0.07": {
+        "threshold": 0.7,
+        "false_rejection": 0.0627,
+        "handled_locally": 0.9373,
+        "accuracy_on_kept": 0.9626,
+        "ood_recall_unseen": 0.8769
+      },
+      "0.1": {
+        "threshold": 0.8,
+        "false_rejection": 0.0844,
+        "handled_locally": 0.9156,
+        "accuracy_on_kept": 0.9688,
+        "ood_recall_unseen": 0.959
+      }
+    }
+  },
+  "runs/xlmr-adj/best": {
+    "curve": [
+      {
+        "threshold": 0.0,
+        "false_rejection": 0.0016,
+        "handled_locally": 0.9984,
+        "accuracy_on_kept": 0.9343,
+        "ood_recall_unseen": 0.6974
+      },
+      {
+        "threshold": 0.3,
+        "false_rejection": 0.0055,
+        "handled_locally": 0.9945,
+        "accuracy_on_kept": 0.9367,
+        "ood_recall_unseen": 0.7641
+      },
+      {
+        "threshold": 0.4,
+        "false_rejection": 0.0117,
+        "handled_locally": 0.9883,
+        "accuracy_on_kept": 0.9399,
+        "ood_recall_unseen": 0.8103
+      },
+      {
+        "threshold": 0.5,
+        "false_rejection": 0.0234,
+        "handled_locally": 0.9766,
+        "accuracy_on_kept": 0.9471,
+        "ood_recall_unseen": 0.8564
+      },
+      {
+        "threshold": 0.6,
+        "false_rejection": 0.0364,
+        "handled_locally": 0.9636,
+        "accuracy_on_kept": 0.9511,
+        "ood_recall_unseen": 0.8923
+      },
+      {
+        "threshold": 0.65,
+        "false_rejection": 0.0464,
+        "handled_locally": 0.9536,
+        "accuracy_on_kept": 0.9578,
+        "ood_recall_unseen": 0.9026
+      },
+      {
+        "threshold": 0.7,
+        "false_rejection": 0.0565,
+        "handled_locally": 0.9435,
+        "accuracy_on_kept": 0.9615,
+        "ood_recall_unseen": 0.9077
+      },
+      {
+        "threshold": 0.75,
+        "false_rejection": 0.0669,
+        "handled_locally": 0.9331,
+        "accuracy_on_kept": 0.9659,
+        "ood_recall_unseen": 0.9333
+      },
+      {
+        "threshold": 0.8,
+        "false_rejection": 0.0802,
+        "handled_locally": 0.9198,
+        "accuracy_on_kept": 0.97,
+        "ood_recall_unseen": 0.9641
+      },
+      {
+        "threshold": 0.85,
+        "false_rejection": 0.101,
+        "handled_locally": 0.899,
+        "accuracy_on_kept": 0.9751,
+        "ood_recall_unseen": 0.9641
+      },
+      {
+        "threshold": 0.9,
+        "false_rejection": 0.1331,
+        "handled_locally": 0.8669,
+        "accuracy_on_kept": 0.9772,
+        "ood_recall_unseen": 0.9744
+      },
+      {
+        "threshold": 0.93,
+        "false_rejection": 0.1744,
+        "handled_locally": 0.8256,
+        "accuracy_on_kept": 0.9823,
+        "ood_recall_unseen": 0.9795
+      },
+      {
+        "threshold": 0.95,
+        "false_rejection": 0.2406,
+        "handled_locally": 0.7594,
+        "accuracy_on_kept": 0.9872,
+        "ood_recall_unseen": 0.9897
+      },
+      {
+        "threshold": 0.97,
+        "false_rejection": 0.4026,
+        "handled_locally": 0.5974,
+        "accuracy_on_kept": 0.994,
+        "ood_recall_unseen": 1.0
+      },
+      {
+        "threshold": 0.99,
+        "false_rejection": 0.987,
+        "handled_locally": 0.013,
+        "accuracy_on_kept": 0.975,
+        "ood_recall_unseen": 1.0
+      }
+    ],
+    "operating_points": {
+      "0.03": {
+        "threshold": 0.5,
+        "false_rejection": 0.0234,
+        "handled_locally": 0.9766,
+        "accuracy_on_kept": 0.9471,
+        "ood_recall_unseen": 0.8564
+      },
+      "0.05": {
+        "threshold": 0.65,
+        "false_rejection": 0.0464,
+        "handled_locally": 0.9536,
+        "accuracy_on_kept": 0.9578,
+        "ood_recall_unseen": 0.9026
+      },
+      "0.07": {
+        "threshold": 0.75,
+        "false_rejection": 0.0669,
+        "handled_locally": 0.9331,
+        "accuracy_on_kept": 0.9659,
+        "ood_recall_unseen": 0.9333
+      },
+      "0.1": {
+        "threshold": 0.8,
+        "false_rejection": 0.0802,
+        "handled_locally": 0.9198,
+        "accuracy_on_kept": 0.97,
+        "ood_recall_unseen": 0.9641
+      }
+    }
+  }
+}
