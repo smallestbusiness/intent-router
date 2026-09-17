@@ -1,7 +1,7 @@
 """Build the Hebrew evaluation slice.
 
-BANKING77 is English only. An Israeli bank's customers mostly are not, and a banking assistant is sold as
-multilingual, so an English-only accuracy figure answers the easy half of the
+BANKING77 is English only. An Israeli bank's customers mostly are not, and a
+banking assistant sold as multilingual has to work in their language, so an English-only accuracy figure answers the easy half of the
 question. This translates a stratified sample of the English test set -- every
 intent represented -- so the same examples can be scored in both languages and
 the drop attributed to language rather than to a different sample.

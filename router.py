@@ -1,4 +1,4 @@
-"""The fine-tuned router as a drop-in replacement for the copilot's route node.
+"""The fine-tuned router as a drop-in replacement for a LangGraph route node.
 
 Same shape as the grounding check in the copilot: a cheap local model settles
 the common case, and the expensive general model is called only on what the

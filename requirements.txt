@@ -1,0 +1,12 @@
+# torch is installed separately, from the wheel index matching your CUDA version:
+#   pip install torch --index-url https://download.pytorch.org/whl/cu126
+# Versions are the ones the published numbers were measured with.
+transformers==5.16.1
+datasets==5.0.1
+accelerate==1.14.0
+peft==0.20.0
+scikit-learn==1.7.2
+numpy==2.2.6
+sentencepiece
+anthropic==1.4.0
+python-dotenv
