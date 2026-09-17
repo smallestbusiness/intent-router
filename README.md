@@ -10,8 +10,9 @@ on the highest-QPS node in the graph — every message hits the router — and
 returns an answer that can differ between two identical inputs, on a step whose
 output is written to an audit log.
 
-The copilot is a separate LangGraph banking agent over synthetic data and is not
-published; everything needed to reproduce the numbers below is in this repo.
+The copilot is [banking-copilot](https://github.com/smallestbusiness/banking-copilot),
+a LangGraph banking agent over synthetic data. Everything needed to reproduce the
+numbers below is in this repo.
 
 ## What's here
 
